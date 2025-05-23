@@ -27,7 +27,7 @@ repository:
 
 launch_buttons:
   notebook_interface: "jupyterlab"
-  binderhub_url: "https://mybinder.org/v2/gh/francisanggara/statement-page/main?urlpath=%2Fdoc%2Ftree 2FConvertToCSV.ipynb" 
+  binderhub_url: "https://mybinder.org/v2/gh/https://francisanggara.github.io/visualizer-project/gh-pages?urlpath=%2Fdoc%2Ftree%2FPythonCode.ipynb" 
 
 launch_buttons:
   thebe                  : true

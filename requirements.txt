@@ -2,5 +2,4 @@ jupyter-book
 matplotlib
 numpy
 pandas
-csv
 datetime

@@ -1,0 +1,184 @@
+Traceback (most recent call last):
+  File "C:\Users\Francis\anaconda3\lib\site-packages\jupyter_cache\executors\utils.py", line 58, in single_nb_execution
+    executenb(
+  File "C:\Users\Francis\anaconda3\lib\site-packages\nbclient\client.py", line 1305, in execute
+    return NotebookClient(nb=nb, resources=resources, km=km, **kwargs).execute()
+  File "C:\Users\Francis\anaconda3\lib\site-packages\jupyter_core\utils\__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+  File "C:\Users\Francis\anaconda3\lib\asyncio\base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "C:\Users\Francis\anaconda3\lib\site-packages\nbclient\client.py", line 705, in async_execute
+    await self.async_execute_cell(
+  File "C:\Users\Francis\anaconda3\lib\site-packages\nbclient\client.py", line 1058, in async_execute_cell
+    await self._check_raise_for_error(cell, cell_index, exec_reply)
+  File "C:\Users\Francis\anaconda3\lib\site-packages\nbclient\client.py", line 914, in _check_raise_for_error
+    raise CellExecutionError.from_cell_and_msg(cell, exec_reply_content)
+nbclient.exceptions.CellExecutionError: An error occurred while executing the following cell:
+------------------
+import csv
+import pandas as pd
+import datetime
+import matplotlib.pyplot as plt
+
+def process_csv(file):
+    df = pd.read_csv(file) # load the .csv and converts it into a DataFrame
+    df = df.iloc[:, 0:4]
+    # in case the .csv has more than four columns, chop it down into four
+    df = df.dropna() # this removes any extra rows in the DataFrame
+    df['Amount'] = df['Amount'].astype(float)
+    # casts the 'Amount' column into floats
+
+    for cell in range(len(df['Date'])):
+        current_cell = df.loc[cell, 'Date']
+        # print(current_cell)
+        if len(current_cell) == 5:
+            current_cell = pd.to_datetime(df.loc[cell, 'Date'] + '/2025')
+            # currently is hardcoded to add the year 2025 to the date
+            current_cell = current_cell.strftime("%x")
+            # format the dates to be MM/DD/YY
+            df.loc[cell, 'Date'] = current_cell
+        else:
+            current_cell = pd.to_datetime(df.loc[cell, 'Date'])
+            current_cell = current_cell.strftime("%x")
+            df.loc[cell, 'Date'] = current_cell
+    return df
+
+def combine_slices(input_df):
+    combined_data = {}
+    for idx in range(len(input_df.iloc[:, 2])):
+        current_category = input_df.iloc[idx, 2]
+        if current_category not in combined_data:
+            amount_list = 0
+            combined_data[current_category] = amount_list
+            # amount_list.append(pos_df.iloc[idx,3])
+        for key in combined_data:
+            if key == current_category:
+                combined_data[current_category] += input_df.iloc[idx,3]
+    merged_values = combined_data.values()
+    merged_labels = combined_data.keys()
+    return combined_data
+
+new_file = input("Welcome! Input a file's name(must be .csv) to analyze: ")
+current_df = process_csv(new_file)
+
+add_new = True
+while add_new:
+    add_true = input("Add another file(y/n)?")
+    if add_true == 'y':
+        combine_df = process_csv(input("Enter a .csv file:"))
+        combined_df = combine_df.merge(current_df, how = 'outer')
+        current_df = combined_df.copy()
+        add_true = input("Add another file(y/n)?")
+    if add_true == 'n':
+        add_new = False
+        combined_df = current_df
+current_df = combined_df
+repeat = True
+while repeat:
+    flow = input("Would you like to look at spending(s) or income(i)?")
+    if flow == "i":
+        current_df = current_df[current_df['Amount'] > 0]
+        repeat = False
+        flow_name = "Income"
+    elif flow == "s":
+        current_df.loc[:, "Amount"] = -1 * current_df.loc[:, "Amount"]
+        # current_df = df.reset_index()
+        # current_df = current_df.iloc[:, 1:]
+        current_df = current_df[current_df['Amount'] > 0]
+        flow_name = "Spending"
+        repeat = False
+    else:
+        print("Invalid input, dude!")
+
+current_df = current_df.reset_index()
+current_df = current_df.iloc[:, 1:]
+filter_more_categories_valid = True
+while filter_more_categories_valid == True:
+    date_range_valid = input("Would you like to filter out a category(y/n)? \
+    (will repeat if you type 'y' and give an input to the next question):")
+    if date_range_valid == 'y':
+        filtered_category = input("Enter the category you want to filter out:")
+        fresh_df = []
+        for cell in range(len(current_df)):
+            if current_df.loc[cell, 'Category'] != filtered_category:
+                current_cell = current_df.loc[cell, 'Category']
+                fresh_df.append(current_df.loc[cell])
+        fresh_df = pd.DataFrame(fresh_df)
+        continue
+        current_df = fresh_df
+    elif date_range_valid == 'n':
+        filter_more_categories_valid = False
+    else:
+        print("Invalid input!")
+        continue
+current_df = fresh_df
+current_df = pd.DataFrame(current_df)
+current_df = current_df.reset_index()
+current_df = current_df.iloc[:, 1:]
+date_range_valid = False
+while date_range_valid == False:
+    date_range_valid = input("Would you like to set a date range(y/n)? ")
+    if date_range_valid == 'y':
+
+        min_date = input('Enter the minimum date you want to filter your \
+        data(MM/DD/YYYY):')
+        max_date = input('Enter the maximum date you want to filter your \
+        data(MM/DD/YYYY:')
+
+        max_date = pd.to_datetime(max_date)
+        min_date = pd.to_datetime(min_date)
+
+        current_df = current_df[min_date <= pd.to_datetime(current_df['Date'], \
+                                                           format = 'mixed')]
+        current_df = current_df[max_date >= pd.to_datetime(current_df['Date'], \
+                                                           format = 'mixed')]
+
+dict_here = combine_slices(current_df)
+print()
+plt.pie(dict_here.values(), labels=dict_here.keys(), autopct='%1.1f%%')
+plt.title(flow_name, fontsize=15, fontweight='bold')
+plt.show()
+print()
+empty_df_for_format = pd.DataFrame({
+    "Amount": ['-'],
+    "Category": ['-'],
+    "Description": ['-'],
+    "Date": ['-']
+})
+
+summed_df = pd.DataFrame({
+    "Category": dict_here.keys(),
+    "Amount": dict_here.values()
+})
+
+df_list = [current_df,empty_df_for_format,  summed_df]
+
+current_df = pd.concat(df_list)
+current_df = current_df.reset_index()
+current_df = current_df.iloc[:, 1:]
+current_df
+------------------
+
+
+[1;31m---------------------------------------------------------------------------[0m
+[1;31mStdinNotImplementedError[0m                  Traceback (most recent call last)
+Cell [1;32mIn[1], line 44[0m
+[0;32m     41[0m     merged_labels [38;5;241m=[39m combined_data[38;5;241m.[39mkeys()
+[0;32m     42[0m     [38;5;28;01mreturn[39;00m combined_data
+[1;32m---> 44[0m new_file [38;5;241m=[39m [38;5;28;43minput[39;49m[43m([49m[38;5;124;43m"[39;49m[38;5;124;43mWelcome! Input a file[39;49m[38;5;124;43m'[39;49m[38;5;124;43ms name(must be .csv) to analyze: [39;49m[38;5;124;43m"[39;49m[43m)[49m
+[0;32m     45[0m current_df [38;5;241m=[39m process_csv(new_file)
+[0;32m     47[0m add_new [38;5;241m=[39m [38;5;28;01mTrue[39;00m
+
+File [1;32m~\anaconda3\lib\site-packages\ipykernel\kernelbase.py:1281[0m, in [0;36mKernel.raw_input[1;34m(self, prompt)[0m
+[0;32m   1279[0m [38;5;28;01mif[39;00m [38;5;129;01mnot[39;00m [38;5;28mself[39m[38;5;241m.[39m_allow_stdin:
+[0;32m   1280[0m     msg [38;5;241m=[39m [38;5;124m"[39m[38;5;124mraw_input was called, but this frontend does not support input requests.[39m[38;5;124m"[39m
+[1;32m-> 1281[0m     [38;5;28;01mraise[39;00m StdinNotImplementedError(msg)
+[0;32m   1282[0m [38;5;28;01mreturn[39;00m [38;5;28mself[39m[38;5;241m.[39m_input_request(
+[0;32m   1283[0m     [38;5;28mstr[39m(prompt),
+[0;32m   1284[0m     [38;5;28mself[39m[38;5;241m.[39m_parent_ident[[38;5;124m"[39m[38;5;124mshell[39m[38;5;124m"[39m],
+[0;32m   1285[0m     [38;5;28mself[39m[38;5;241m.[39mget_parent([38;5;124m"[39m[38;5;124mshell[39m[38;5;124m"[39m),
+[0;32m   1286[0m     password[38;5;241m=[39m[38;5;28;01mFalse[39;00m,
+[0;32m   1287[0m )
+
+[1;31mStdinNotImplementedError[0m: raw_input was called, but this frontend does not support input requests.
+

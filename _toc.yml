@@ -8,4 +8,5 @@ root: Intro
 chapters:
 - file: FormatCSV
 - file: Code
+- file: PythonCode
 - file: More by Francis
